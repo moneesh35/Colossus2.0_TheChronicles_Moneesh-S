@@ -1,80 +1,123 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ref, onValue } from 'firebase/database';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
-  const [createdRooms, setCreatedRooms] = useState([]);
-  const [suggestedRooms, setSuggestedRooms] = useState([]);
-  const [userInterests, setUserInterests] = useState([]);
   const navigate = useNavigate();
-
   const auth = getAuth();
   const firestore = getFirestore();
-  const currentUser = auth.currentUser;
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Step 1: Fetch user interests
+  const [userInterests, setUserInterests] = useState([]);
+  const [userSubjects, setUserSubjects] = useState([]);
+  const [createdRooms, setCreatedRooms] = useState([]);
+  const [suggestedRooms, setSuggestedRooms] = useState([]);
+
+  const dummyRooms = [
+    {
+      id: 'dummy1',
+      course: 'Web Dev Bootcamp',
+      goal: 'Master React in 10 days',
+      tags: ['react', 'frontend']
+    },
+    {
+      id: 'dummy2',
+      course: 'Cybersecurity Crash Course',
+      goal: 'Understand SIEM & Threats',
+      tags: ['cybersecurity', 'security']
+    },
+    {
+      id: 'dummy3',
+      course: 'Data Science Basics',
+      goal: 'Learn Python and Pandas',
+      tags: ['python', 'data']
+    }
+  ];
+
+  // 1. Get current user from auth
   useEffect(() => {
-    const fetchUserInterests = async () => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  // 2. Fetch user interests and subjects from Firestore
+  useEffect(() => {
+    const fetchUserProfile = async () => {
       if (!currentUser) return;
 
       try {
-        const userDocRef = doc(firestore, 'users', currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          setUserInterests(userData.interests || []);
+        const docRef = doc(firestore, 'users', currentUser.uid);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          setUserInterests(data.interests || []);
+          setUserSubjects(data.subjects || []);
         }
       } catch (error) {
-        console.error("Error fetching user interests:", error);
+        console.error('Error fetching user profile:', error);
       }
     };
 
-    fetchUserInterests();
+    fetchUserProfile();
   }, [currentUser, firestore]);
 
-  // Step 2: Fetch rooms from DB and filter based on interests
+  // 3. Fetch rooms from Realtime DB
   useEffect(() => {
-    if (!currentUser || userInterests.length === 0) return;
+    if (!currentUser) return;
 
     const roomRef = ref(db, 'rooms');
     const unsubscribe = onValue(roomRef, (snapshot) => {
       const data = snapshot.val();
-      const allRooms = data ? Object.entries(data).map(([id, room]) => ({ id, ...room })) : [];
+      if (!data) {
+        setCreatedRooms([]);
+        setSuggestedRooms([]);
+        return;
+      }
 
-      const userRooms = allRooms.filter(room => room.createdBy === currentUser.uid);
-      const similarInterestRooms = allRooms.filter(
+      const roomsArray = Object.entries(data).map(([id, room]) => ({
+        id,
+        ...room
+      }));
+
+      const yourRooms = roomsArray.filter(room => room.createdBy === currentUser.uid);
+
+      const matchingRooms = roomsArray.filter(
         room =>
           room.createdBy !== currentUser.uid &&
-          room.tags?.some(tag => userInterests.includes(tag))
+          (
+            room.tags?.some(tag => userInterests.includes(tag)) ||
+            room.subjects?.some(sub => userSubjects.includes(sub))
+          )
       );
 
-      setCreatedRooms(userRooms);
-      setSuggestedRooms(similarInterestRooms);
+      setCreatedRooms(yourRooms);
+      setSuggestedRooms(matchingRooms);
     });
 
-    return () => unsubscribe(); // Cleanup on unmount
-  }, [currentUser, userInterests]);
+    return () => unsubscribe();
+  }, [currentUser, userInterests, userSubjects]);
 
   return (
-    <div className="homepage-wrapper">
+    <div className="homepage-wrapper" style={{ background: 'linear-gradient(to bottom, #ffe4b5, #fff3e0)' }}>
       <Container>
-        <h1 className="text-center mb-5 fw-bold">📚 StudyBuddy</h1>
+        <h1 className="text-center fw-bold mt-4 mb-2">📚 StudyBuddy</h1>
+        <p className="text-center fs-5 text-muted mb-5">Connect. Collaborate. Conquer Your Study Goals Together.</p>
 
-        {/* Create / Join Room Tiles */}
+        {/* Create / Join Tiles */}
         <Row className="g-4 justify-content-center mb-5">
           <Col xs={12} md={6} lg={4}>
             <Card className="shadow-lg hover-tile text-center p-3">
               <Card.Body>
                 <Card.Title>Create a Study Room</Card.Title>
-                <Card.Text>Start a new course and wait for a buddy to join you.</Card.Text>
-                <Button variant="warning" onClick={() => navigate('/room/create')}>
-                  Create Room
-                </Button>
+                <Card.Text>Start a new course and wait for a buddy to join.</Card.Text>
+                <Button variant="warning" onClick={() => navigate('/create-room')}>Create Room</Button>
               </Card.Body>
             </Card>
           </Col>
@@ -83,73 +126,44 @@ const HomePage = () => {
               <Card.Body>
                 <Card.Title>Join a Study Room</Card.Title>
                 <Card.Text>Explore and join rooms created by others.</Card.Text>
-                <Button variant="success" onClick={() => navigate('/room/join')}>
-                  Join Room
-                </Button>
+                <Button variant="success" onClick={() => navigate('/room/join')}>Join Room</Button>
               </Card.Body>
             </Card>
           </Col>
         </Row>
 
-        {/* User's Created Rooms */}
-        <h4 className="mb-3 text-center">🧠 Your Created Rooms</h4>
+        {/* Created Rooms */}
+        <h4 className="mb-3 mt-5 text-center">🧠 Your Created Rooms</h4>
         <Row className="g-4 justify-content-center">
-          {createdRooms.length > 0 ? (
-            createdRooms.map((room) => (
-              <Col xs={12} md={6} lg={4} key={room.id}>
-                <Card className="created-room-card p-3">
-                  <Card.Body>
-                    <Card.Title>{room.course}</Card.Title>
-                    <Card.Text><strong>Goal:</strong> {room.goal}</Card.Text>
-                    <Button variant="outline-dark" onClick={() => navigate(`/room/${room.id}`)}>
-                      Enter Room
-                    </Button>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))
-          ) : (
-            <Col xs={12} md={6} lg={4}>
-              <Card className="p-3 text-center bg-light border-0 shadow-sm">
+          {(createdRooms.length > 0 ? createdRooms : dummyRooms).map(room => (
+            <Col xs={12} md={6} lg={4} key={room.id}>
+              <Card className="created-room-card p-3">
                 <Card.Body>
-                  <Card.Title>No Rooms Yet</Card.Title>
-                  <Card.Text>You haven’t created any rooms. Start by creating one!</Card.Text>
-                  <Button variant="warning" onClick={() => navigate('/room/create')}>Create Now</Button>
+                  <Card.Title>{room.course}</Card.Title>
+                  <Card.Text><strong>Goal:</strong> {room.goal}</Card.Text>
+                  <Card.Text><strong>Tags:</strong> {room.tags?.join(', ')}</Card.Text>
+                  <Button variant="outline-dark" onClick={() => navigate(`/room/${room.id}`)}>Enter Room</Button>
                 </Card.Body>
               </Card>
             </Col>
-          )}
+          ))}
         </Row>
 
-        {/* Suggested Rooms by Similar Interests */}
+        {/* Suggested Rooms */}
         <h4 className="mb-3 mt-5 text-center">✨ Rooms Matching Your Interests</h4>
         <Row className="g-4 justify-content-center">
-          {suggestedRooms.length > 0 ? (
-            suggestedRooms.map((room) => (
-              <Col xs={12} md={6} lg={4} key={room.id}>
-                <Card className="p-3">
-                  <Card.Body>
-                    <Card.Title>{room.course}</Card.Title>
-                    <Card.Text><strong>Goal:</strong> {room.goal}</Card.Text>
-                    <Card.Text><strong>Tags:</strong> {room.tags?.join(', ')}</Card.Text>
-                    <Button variant="primary" onClick={() => navigate(`/room/${room.id}`)}>
-                      Join Room
-                    </Button>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))
-          ) : (
-            <Col xs={12} md={6} lg={4}>
-              <Card className="p-3 text-center bg-light border-0 shadow-sm">
+          {(suggestedRooms.length > 0 ? suggestedRooms : dummyRooms).map(room => (
+            <Col xs={12} md={6} lg={4} key={room.id}>
+              <Card className="p-3">
                 <Card.Body>
-                  <Card.Title>No Rooms Available</Card.Title>
-                  <Card.Text>We couldn’t find any rooms matching your interests right now.</Card.Text>
-                  <Button variant="success" onClick={() => navigate('/room/join')}>Browse All Rooms</Button>
+                  <Card.Title>{room.course}</Card.Title>
+                  <Card.Text><strong>Goal:</strong> {room.goal}</Card.Text>
+                  <Card.Text><strong>Tags:</strong> {room.tags?.join(', ')}</Card.Text>
+                  <Button variant="primary" onClick={() => navigate(`/room/${room.id}`)}>Join Room</Button>
                 </Card.Body>
               </Card>
             </Col>
-          )}
+          ))}
         </Row>
       </Container>
     </div>
