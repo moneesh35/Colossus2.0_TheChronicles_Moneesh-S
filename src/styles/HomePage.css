@@ -1,0 +1,24 @@
+.homepage-wrapper {
+    padding: 3rem 0;
+    background: #fffdf7;
+    min-height: 100vh;
+  }
+  
+  .created-room-card,
+  .available-room-card,
+  .hover-tile {
+    border: 2px solid #ffa500;
+    border-radius: 12px;
+    background-color: #fff8e7;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+  }
+  
+  .hover-tile:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
+  }
+  
+  button {
+    font-weight: bold;
+  }
+  

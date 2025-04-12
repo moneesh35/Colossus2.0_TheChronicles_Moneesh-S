@@ -1,65 +1,130 @@
 .chatbox-container {
-    border: 2px solid #f1c40f;
-    padding: 20px;
-    border-radius: 10px;
-    background: linear-gradient(to bottom right, #fff8dc, #fff7003f);
-    max-width: 600px;
-    margin: 0 auto;
-    animation: fadeIn 0.5s ease-in-out;
+  max-width: 800px;
+  margin: 40px auto;
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+}
+
+.chatbox-container h3 {
+  text-align: center;
+  color: #ff8c00;
+  margin-bottom: 20px;
+}
+
+.chat-messages {
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.chat-message {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background-color: #e7f1ff;
+  border-left: 4px solid #0077ff;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.chat-message a {
+  color: #0077ff;
+  text-decoration: underline;
+  display: block;
+  margin-top: 5px;
+}
+
+.chat-controls,
+.goal-deadline-section,
+.course-section,
+.file-upload {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.chat-controls input,
+.goal-deadline-section input,
+.course-section input {
+  padding: 10px;
+  flex: 1;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+.chat-controls button,
+.goal-deadline-section button,
+.course-section button {
+  padding: 10px 16px;
+  background-color: #ffa500;
+  border: none;
+  color: white;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s ease-in-out;
+}
+
+.chat-controls button:hover,
+.goal-deadline-section button:hover,
+.course-section button:hover {
+  background-color: #ff7400;
+}
+
+.chat-controls button.clear-chat {
+  background-color: #f44336;
+}
+
+.chat-controls button.clear-chat:hover {
+  background-color: #d32f2f;
+}
+
+.file-upload input[type='file'] {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .chatbox-container {
+    padding: 16px;
   }
-  
-  .chat-messages {
-    height: 250px;
-    overflow-y: auto;
-    background-color: #fff;
-    border: 1px solid #eee;
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-  }
-  
-  .chat-message {
-    margin-bottom: 10px;
-  }
-  
+
   .chat-controls,
   .goal-deadline-section,
-  .file-upload {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
+  .course-section {
+    flex-direction: column;
+    align-items: stretch;
   }
-  
-  input[type="text"],
-  input[type="datetime-local"] {
-    padding: 8px;
-    flex: 1;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-  }
-  
-  button {
-    padding: 8px 12px;
-    background-color: #f39c12;
+  .upload-btn {
+    display: inline-block;
+    background-color: #ffa500;
     color: white;
-    border: none;
-    border-radius: 5px;
+    padding: 10px 18px;
+    border-radius: 6px;
     cursor: pointer;
+    font-weight: 600;
+    margin-top: 10px;
+    transition: background-color 0.3s ease;
   }
   
-  button:hover {
-    background-color: #e67e22;
+  .upload-btn:hover {
+    background-color: #ff8c00;
   }
   
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(15px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .file-name {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #444;
   }
   
+}

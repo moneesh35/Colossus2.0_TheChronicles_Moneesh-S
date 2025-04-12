@@ -1,123 +1,137 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { ref, push, onValue } from 'firebase/database';
-import '../styles/ChatBox.css';
+// src/pages/RoomPage.js
 
-const ChatBox = ({ roomId }) => {
-  const [message, setMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import ChatBox from '../components/ChatBox';
+import { db } from '../firebase';
+import { ref, remove, push, set } from 'firebase/database';
+import '../styles/RoomPage.css';
+
+const RoomPage = () => {
+  const { roomId } = useParams();
+  const navigate = useNavigate();
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+
   const [goal, setGoal] = useState('');
   const [deadline, setDeadline] = useState('');
-  const [sharedFiles, setSharedFiles] = useState([]);
+  const [course, setCourse] = useState('');
+  const [countdown, setCountdown] = useState('');
 
+  // ✅ Track user join and leave in chat
   useEffect(() => {
-    const chatRef = ref(db, `chats/${roomId}`);
-    onValue(chatRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const messages = Object.values(data);
-        setChatMessages(messages);
-      }
-    });
-  }, [roomId]);
+    if (!currentUser) return;
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
+    const userRef = ref(db, `rooms/${roomId}/participants/${currentUser.id}`);
     const chatRef = ref(db, `chats/${roomId}`);
+
+    // Set user in participants list
+    set(userRef, { name: currentUser.name });
+
+    // Push join message
     push(chatRef, {
-      text: message,
+      text: `✅ ${currentUser.name} has joined the room.`,
       timestamp: Date.now(),
     });
-    setMessage('');
-  };
 
-  const handleGoalSet = () => {
-    if (!goal.trim()) return;
-    const chatRef = ref(db, `chats/${roomId}`);
-    push(chatRef, {
-      text: `🎯 Goal Set: ${goal}`,
-      timestamp: Date.now(),
-    });
-    setGoal('');
-  };
+    // On leave
+    return () => {
+      remove(userRef);
+      push(chatRef, {
+        text: `👋 ${currentUser.name} has left the room.`,
+        timestamp: Date.now(),
+      });
+    };
+  }, [roomId, currentUser]);
 
-  const handleDeadlineSet = () => {
+  // ⏳ Countdown Timer + Auto-close
+  useEffect(() => {
     if (!deadline) return;
-    const chatRef = ref(db, `chats/${roomId}`);
-    push(chatRef, {
-      text: `⏰ Deadline Set: ${new Date(deadline).toLocaleString()}`,
-      timestamp: Date.now(),
-    });
-    setDeadline('');
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const target = new Date(deadline).getTime();
+      const distance = target - now;
+
+      if (distance <= 0) {
+        clearInterval(interval);
+        setCountdown('⏳ Deadline Reached');
+
+        // Notify and delete room after delay
+        const chatRef = ref(db, `chats/${roomId}`);
+        push(chatRef, {
+          text: '⚠️ Deadline reached. This room is now closed.',
+          timestamp: Date.now(),
+        });
+
+        setTimeout(async () => {
+          await remove(ref(db, `rooms/${roomId}`));
+          await remove(chatRef);
+          navigate('/');
+        }, 5000);
+      } else {
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setCountdown(`${hours}h ${minutes}m ${seconds}s`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [deadline, roomId, navigate]);
+
+  // 📎 Copy room link
+  const handleCopyLink = () => {
+    const roomLink = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard.writeText(roomLink);
+    alert('📎 Room link copied to clipboard!');
   };
 
-  const handleFileUpload = (e) => {
-    const uploadedFile = e.target.files[0];
-    if (!uploadedFile) return;
-    const chatRef = ref(db, `chats/${roomId}`);
-    const fileURL = URL.createObjectURL(uploadedFile);
-
-    push(chatRef, {
-      text: `📎 Shared File: `,
-      fileName: uploadedFile.name,
-      fileURL: fileURL,
+// 👋 Leave room and go to feedback
+const handleLeaveRoom = async () => {
+  const chatRef = ref(db, `chats/${roomId}`);
+  
+  if (currentUser && currentUser.name) {
+    await push(chatRef, {
+      text: `👋 ${currentUser.name} has left the room.`,
       timestamp: Date.now(),
     });
+  } else {
+    await push(chatRef, {
+      text: `👤 A participant has left the room.`,
+      timestamp: Date.now(),
+    });
+  }
 
-    setSharedFiles([...sharedFiles, uploadedFile.name]);
-  };
+  navigate(`/feedback/${roomId}`);
+};
+
 
   return (
-    <div className="chatbox-container">
-      <h3>Study Room Chat</h3>
+    <div className="room-page-wrapper">
+      <div className="room-page-container">
+        <h2>Welcome to Room: {roomId}</h2>
 
-      <div className="chat-messages">
-        {chatMessages.map((msg, idx) => (
-          <div key={idx} className="chat-message">
-            {msg.text}
-            {msg.fileURL && (
-              <div>
-                <a href={msg.fileURL} target="_blank" rel="noopener noreferrer">
-                  {msg.fileName}
-                </a>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+        <div className="room-actions">
+          <button onClick={handleCopyLink} className="room-btn">📎 Copy Room Link</button>
+          <button onClick={handleLeaveRoom} className="room-btn leave">👋 Leave Room</button>
+        </div>
 
-      <div className="chat-controls">
-        <input
-          type="text"
-          placeholder="Type a message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+        <div className="room-details">
+          <p><strong>📘 Course:</strong> {course || 'Not set yet'}</p>
+          <p><strong>🎯 Goal:</strong> {goal || 'Not set yet'}</p>
+          <p><strong>⏰ Deadline:</strong> {deadline ? new Date(deadline).toLocaleString() : 'Not set yet'}</p>
+          {deadline && <p><strong>⏳ Time Left:</strong> {countdown}</p>}
+        </div>
+
+        <ChatBox
+          roomId={roomId}
+          onGoalSet={setGoal}
+          onDeadlineSet={setDeadline}
+          onCourseSet={setCourse}
         />
-        <button onClick={sendMessage}>Send</button>
-      </div>
-
-      <div className="goal-deadline-section">
-        <input
-          type="text"
-          placeholder="Set your goal..."
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-        />
-        <button onClick={handleGoalSet}>🎯 Set Goal</button>
-
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-        />
-        <button onClick={handleDeadlineSet}>⏰ Set Deadline</button>
-      </div>
-
-      <div className="file-upload">
-        <input type="file" onChange={handleFileUpload} />
       </div>
     </div>
   );
 };
 
-export default ChatBox;
+export default RoomPage;

@@ -1,0 +1,48 @@
+.feedback-wrapper {
+    min-height: 100vh;
+    background: linear-gradient(to bottom right, #fff9e6, #ffffff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+  }
+  
+  .stars {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  
+  .star {
+    font-size: 2.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    transition: color 0.2s ease-in-out;
+  }
+  
+  .star.on {
+    color: #ffa500;
+  }
+  
+  .star.off {
+    color: #ccc;
+  }
+  
+  .submit-btn {
+    padding: 10px 25px;
+    background-color: #ffa500;
+    border: none;
+    color: white;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .submit-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  

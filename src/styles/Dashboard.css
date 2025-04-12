@@ -1,0 +1,53 @@
+.dashboard-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: left;
+}
+
+.dashboard-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-weight: bold;
+}
+
+.dashboard-card {
+  background: #fffbe6;
+  border: 1px solid #fdd835;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.edit-btn,
+.save-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #ff9800;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.edit-btn:hover,
+.save-btn:hover {
+  background-color: #f57c00;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
